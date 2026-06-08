@@ -55,7 +55,7 @@ def load_data():
     return country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR
 
 # Unpack your actual Colab data structures
-country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR = load_real_data()
+country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR = load_data()
 
 # -- Colour constants ------------------------------------------
 C_HIST     = '#2c3e50'
@@ -77,7 +77,7 @@ STATUS_COLORS_DB = {
 }
 
 # -- APP LAYOUT ------------------------------------------------
-st.title("?? EcoForecast � ASEAN CO2 2030 Interactive Dashboard")
+st.title("🌿EcoForecast  ASEAN CO2 2030 Interactive Dashboard")
 
 # Create a clean configuration Sidebar instead of bulky grid boxes
 st.sidebar.header("Dashboard Controls")
@@ -101,17 +101,17 @@ yr_min, yr_max = st.sidebar.slider("Year Range", min_value=1990, max_value=2030,
 # Tabs layout for main view
 tab_choice = st.radio(
     "Select Analysis View", 
-    options=['?? Forecast', '?? Decoupling', '?? League Table', '?? Driver Attribution'],
+    options=['📈Forecast', '🔀Decoupling', '🏆League Table', '🔍Driver Attribution'],
     horizontal=True
 )
 
 # Guard rail clause
 if not selected:
-    st.warning("?? Select at least one country using the checkboxes in the sidebar.")
+    st.warning("⚠️Select at least one country using the checkboxes in the sidebar.")
     st.stop()
 
 # -- TAB 1: FORECAST -------------------------------------------
-if tab_choice == '?? Forecast':
+if tab_choice == '📈Forecast':
     n = len(selected)
     cols_count = min(n, 3)
     rows_count = int(np.ceil(n / cols_count))
@@ -163,7 +163,7 @@ if tab_choice == '?? Forecast':
     for j in range(len(selected), len(axes_flat)):
         axes_flat[j].set_visible(False)
 
-    plt.suptitle(f'CO2 Forecast � {scenario} Scenario', fontsize=14, fontweight='bold', y=1.01)
+    plt.suptitle(f'CO2 Forecast  {scenario} Scenario', fontsize=14, fontweight='bold', y=1.01)
     plt.tight_layout()
     st.pyplot(fig)
 
@@ -180,10 +180,10 @@ if tab_choice == '?? Forecast':
             "2030 Forecast B (Mt)": round(fc30, 2),
             "Growth %": f"{growth:+.1f}%" if not np.isnan(growth) else "N/A"
         })
-    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True)
+    st.dataframe(pd.DataFrame(summary_rows), width='stretch')
 
 # -- TAB 2: DECOUPLING -----------------------------------------
-elif tab_choice == '?? Decoupling':
+elif tab_choice == '🔀Decoupling':
     df_plot = df_fwd_decouple[df_fwd_decouple['Country'].isin(selected)].sort_values('Fwd_Gap_%pts')
 
     if df_plot.empty:
@@ -200,7 +200,7 @@ elif tab_choice == '?? Decoupling':
 
         ax.axvline(0, color='black', linewidth=1.2)
         ax.set_xlabel('GDP CAGR - CO2 CAGR (% pts)', fontsize=10)
-        ax.set_title('Forward Decoupling Index (2023�2030 Baseline)\nPositive = economy growing faster than emissions', fontweight='bold', fontsize=12)
+        ax.set_title('Forward Decoupling Index (20232030 Baseline)\nPositive = economy growing faster than emissions', fontweight='bold', fontsize=12)
         
         for status, color in STATUS_COLORS_DB.items():
             if status != 'Insufficient data':
@@ -210,10 +210,10 @@ elif tab_choice == '?? Decoupling':
         plt.tight_layout()
         st.pyplot(fig)
         
-        st.dataframe(df_plot, use_container_width=True)
+        st.dataframe(df_plot, width='stretch')
 
 # -- TAB 3: LEAGUE TABLE ---------------------------------------
-elif tab_choice == '?? League Table':
+elif tab_choice == '🏆League Table':
     df_lt = df_league[df_league['Country'].isin(selected)][[
         'Rank', 'Country', 'Actual_2022_Mt', 'B_Baseline_2030_Mt', 'B_Low_Mt', 'B_High_Mt', 'Growth_B_%', 'Fwd_Decoupling'
     ]].copy()
@@ -233,10 +233,10 @@ elif tab_choice == '?? League Table':
             tbl[0, col_idx].set_text_props(color='white', fontweight='bold')
 
         st.pyplot(fig)
-        st.dataframe(df_lt, use_container_width=True)
+        st.dataframe(df_lt, width='stretch')
 
 # -- TAB 4: DRIVER ATTRIBUTION ---------------------------------
-elif tab_choice == '?? Driver Attribution':
+elif tab_choice == '🔍Driver Attribution':
     driver_display_cols = [c for c in list(DRIVER_LABELS.values()) if c in df_contrib.columns]
     df_attr = df_contrib[df_contrib.index.isin(selected)][driver_display_cols].copy()
 
@@ -258,10 +258,10 @@ elif tab_choice == '?? Driver Attribution':
 
         ax.axvline(0, color='black', linewidth=1.2)
         ax.set_xlabel('Contribution to 2022?2030 CO2 growth (%)', fontsize=10)
-        ax.set_title('Driver Attribution � What is pushing emissions toward 2030?', fontweight='bold', fontsize=12)
+        ax.set_title('Driver Attribution  What is pushing emissions toward 2030?', fontweight='bold', fontsize=12)
         ax.legend(fontsize=9, ncol=3, loc='lower right')
         sns.despine(ax=ax)
         plt.tight_layout()
         st.pyplot(fig)
         
-        st.dataframe(df_attr, use_container_width=True)
+        st.dataframe(df_attr, width='stretch')
