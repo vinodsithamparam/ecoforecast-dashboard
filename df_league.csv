@@ -1,0 +1,13 @@
+Rank,Country,Actual_2022_Mt,B_Baseline_2030_Mt,B_Low_Mt,B_High_Mt,Boot_P10_Mt,Boot_P90_Mt,Growth_B_%,Divergence_A_B_%,Hist_Decoupling,Fwd_Decoupling
+1,China,11711.8,5285.2,5203.6,5368.1,5598.0,6676.4,-54.9,241.3,Relative Decoupling,Absolute Decoupling
+2,United States,5055.4,2757.2,2763.8,2750.6,3160.7,3507.5,-45.5,199.9,Absolute Decoupling,Absolute Decoupling
+3,India,2831.1,1663.5,1620.4,1707.4,1694.7,1935.6,-41.2,244.5,Weak Decoupling,Absolute Decoupling
+4,Indonesia,758.0,411.7,406.0,417.6,390.5,475.9,-45.7,198.4,Weak Decoupling,Absolute Decoupling
+5,Vietnam,322.7,337.8,317.9,358.5,336.8,359.3,4.7,42.9,Carbon-Locked,Relative Decoupling
+6,Thailand,272.6,293.4,287.5,299.4,291.4,308.7,7.6,46.8,Weak Decoupling,Weak Decoupling
+7,Malaysia,281.9,237.3,234.5,240.1,231.1,257.5,-15.8,82.7,Weak Decoupling,Absolute Decoupling
+8,Singapore,48.9,153.4,150.3,156.6,136.6,154.0,213.5,27.2,Relative Decoupling,Carbon-Locked
+9,Philippines,151.0,136.0,131.7,140.4,132.6,143.0,-9.9,125.8,Carbon-Locked,Absolute Decoupling
+10,Laos,22.5,52.4,45.3,60.2,51.9,52.8,132.2,70.7,Carbon-Locked,Carbon-Locked
+11,Myanmar,31.6,51.8,48.7,55.0,48.6,53.7,63.6,70.6,Carbon-Locked,Carbon-Locked
+12,Cambodia,20.9,28.1,25.7,30.6,27.7,28.7,34.6,96.4,Carbon-Locked,Weak Decoupling
