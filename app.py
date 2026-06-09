@@ -14,48 +14,63 @@ sns.set_theme(style='whitegrid')
 # PLACEHOLDERS FOR YOUR DATA LOADING
 # Replace these with your actual data sources!
 # ==========================================
-@st.cache_data
-def load_data():
-    # 1. Load CSV files (setting the index column where appropriate)
-    df_raw = pd.read_csv('raw_co2.csv', index_col=0)
-    # Convert index to int (years) and reconstruct the dictionary of series
-    df_raw.index = df_raw.index.astype(int)
-    raw_co2 = {col: df_raw[col] for col in df_raw.columns}
-    country_list = list(df_raw.columns)
-    
-    df_fwd_decouple = pd.read_csv('df_fwd_decouple.csv')
-    df_league = pd.read_csv('df_league.csv')
-    df_contrib = pd.read_csv('df_contrib.csv', index_col=0)
-    
-    # 2. Load the nested forecasts dictionary
-    scenario_forecasts = joblib.load('scenario_forecasts.pkl')
+# @st.cache_data
+def load_real_data():
+    try:
+        # Load Raw CO2 safely
+        df_raw = pd.read_csv('raw_co2.csv', index_col=0)
+        df_raw.index = df_raw.index.astype(int)
+        raw_co2 = {col: df_raw[col] for col in df_raw.columns}
+        country_list = list(df_raw.columns)
+        
+        # Load other CSV metrics safely
+        df_fwd_decouple = pd.read_csv('df_fwd_decouple.csv')
+        df_league = pd.read_csv('df_league.csv')
+        
+        # Load df_contrib and cleanly set 'Country' column as the text row index
+        df_contrib = pd.read_csv('df_contrib.csv')
+        df_contrib.columns = df_contrib.columns.str.strip()
+        if 'Country' in df_contrib.columns:
+            df_contrib = df_contrib.set_index('Country')
+            
+        # Load pickle forecasts dictionary
+        scenario_forecasts = joblib.load('scenario_forecasts.pkl')
+        
+        TEST_END = 2022
+        TRAIN_END = 2022
+        
+        # ── EXPLICIT CASE-MATCHED PALETTES ───────────────────────────────────
+        # This matches the EXACT spelling of your driver columns in your CSV file
+        DRIVER_LABELS = {
+            'Energy': 'Energy Intensity of GDP', 
+            'GDP': 'GDP per Capita', 
+            'Population': 'Population', 
+            'Coal': 'Coal Share', 
+            'Oil': 'Oil Share', 
+            'Cement': 'Cement Activity'
+        }
+        
+        CLR = {
+            'Energy': '#a55eea',      # Purple
+            'GDP': '#4b7bec',         # Blue
+            'Population': '#26de81',  # Green
+            'Coal': '#eb3b5a',        # Red/Crimson
+            'Oil': '#fa8231',         # Orange
+            'Cement': '#778ca3'       # Slate Gray
+        }
+        # ─────────────────────────────────────────────────────────────────────
+        
+        return country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR
 
-    # 3. Define your analysis constants (adjust years if needed)
-    TEST_END = 2022
-    TRAIN_END = 2022
-    
-    DRIVER_LABELS = {
-        'energy': 'Energy Intensity of GDP', 
-        'gdp': 'GDP per Capita', 
-        'pop': 'Population',
-        'coal': 'Coal Share',
-        'oil': 'Oil Share',
-        'cement': 'Cement Activity'
-    }
-    
-    CLR = {
-        'energy': '#34495e', 
-        'gdp': '#2980b9', 
-        'pop': '#e67e22',
-        'coal': '#7f8c8d',
-        'oil': '#d35400',
-        'cement': '#bdc3c7'
-    }
-    
-    return country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR
-
+    except FileNotFoundError as e:
+        st.error(f"❌ Data file missing from workspace: {e.filename}")
+        st.stop()
+    except Exception as e:
+        st.error(f"❌ An error occurred while parsing data: {str(e)}")
+        st.stop()
+        
 # Unpack your actual Colab data structures
-country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR = load_data()
+country_list, raw_co2, TEST_END, TRAIN_END, scenario_forecasts, df_fwd_decouple, df_league, DRIVER_LABELS, df_contrib, CLR = load_real_data()
 
 # -- Colour constants ------------------------------------------
 C_HIST     = '#2c3e50'
@@ -235,33 +250,65 @@ elif tab_choice == '🏆League Table':
         st.pyplot(fig)
         st.dataframe(df_lt, width='stretch')
 
-# -- TAB 4: DRIVER ATTRIBUTION ---------------------------------
+# ── TAB 4: DRIVER ATTRIBUTION ─────────────────────────
 elif tab_choice == '🔍Driver Attribution':
-    driver_display_cols = [c for c in list(DRIVER_LABELS.values()) if c in df_contrib.columns]
-    df_attr = df_contrib[df_contrib.index.isin(selected)][driver_display_cols].copy()
+    # Explicitly define the target drivers, matching the CSV headers exactly
+    target_drivers = ['Energy', 'GDP', 'Population', 'Coal', 'Oil', 'Cement']
+    
+    # Clean the index and selections of any hidden spaces
+    df_contrib.index = df_contrib.index.str.strip()
+    clean_selected = [c.strip() for c in selected]
+    
+    # Safely extract only the selected countries and available driver columns
+    available_cols = [c for c in target_drivers if c in df_contrib.columns]
+    df_attr = df_contrib[df_contrib.index.isin(clean_selected)][available_cols].copy()
 
     if df_attr.empty:
-        st.warning("No attribution data for selected countries.")
+        st.warning("⚠️ No attribution data could be matched for the selected countries.")
     else:
-        driver_colors_list = [CLR.get(c.lower(), '#95a5a6') for c in driver_display_cols]
         fig, ax = plt.subplots(figsize=(13, max(4, len(df_attr) * 0.85)))
+        
         bottom_pos = np.zeros(len(df_attr))
         bottom_neg = np.zeros(len(df_attr))
+        
         pos = df_attr.clip(lower=0)
         neg = df_attr.clip(upper=0)
 
-        for col, color in zip(driver_display_cols, driver_colors_list):
-            ax.barh(df_attr.index, pos[col], left=bottom_pos, color=color, alpha=0.85, label=col, edgecolor='white', linewidth=0.4)
+        # Loop through columns dynamically instead of using zip()
+        for col in available_cols:
+            color = CLR.get(col, '#95a5a6')
+            
+            # Draw positive segments
+            ax.barh(df_attr.index, pos[col],
+                    left=bottom_pos, color=color,
+                    alpha=0.85, label=col, edgecolor='white',
+                    linewidth=0.4)
             bottom_pos += pos[col].values
-            ax.barh(df_attr.index, neg[col], left=bottom_neg, color=color, alpha=0.85, edgecolor='white', linewidth=0.4)
+            
+            # Draw negative segments
+            ax.barh(df_attr.index, neg[col],
+                    left=bottom_neg, color=color,
+                    alpha=0.85, edgecolor='white', linewidth=0.4)
             bottom_neg += neg[col].values
 
         ax.axvline(0, color='black', linewidth=1.2)
-        ax.set_xlabel('Contribution to 2022?2030 CO2 growth (%)', fontsize=10)
-        ax.set_title('Driver Attribution  What is pushing emissions toward 2030?', fontweight='bold', fontsize=12)
-        ax.legend(fontsize=9, ncol=3, loc='lower right')
+        ax.set_xlabel('Contribution to 2022→2030 CO₂ growth (%)', fontsize=10)
+        ax.set_title(
+            'Driver Attribution — What is pushing emissions toward 2030?\n'
+            'Positive = growth driver | Negative = dampening force',
+            fontweight='bold', fontsize=12
+        )
+        
+        ax.legend(fontsize=9, ncol=min(3, len(available_cols)), loc='lower right', framealpha=0.8)
         sns.despine(ax=ax)
         plt.tight_layout()
-        st.pyplot(fig)
         
-        st.dataframe(df_attr, width='stretch')
+        # 1. Lock the chart into its own isolated container
+        with st.container():
+            # clear_figure=True acts as a hard reset for the renderer
+            st.pyplot(fig, clear_figure=True) 
+
+        # 2. Lock the table into a completely separate container below it
+        with st.container():
+            st.markdown("**Attribution values (elasticity × historical CAGR × 8 years):**")
+            st.table(df_attr.round(2))
